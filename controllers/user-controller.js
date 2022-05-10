@@ -1,4 +1,5 @@
 const UserService = require('../services/user-service');
+const ReferralService = require('../services/referral-service');
 const ApiError = require("../exceptions/api-error");
 const {validationResult} = require('express-validator');
 
@@ -67,9 +68,9 @@ class UserController {
 
     async startFarm(req, res, next) {
         try {
-            const users = await UserService.getAllUsers();
+            await UserService.farmAllUsers();
 
-            return res.json(users)
+            return res.json(200)
         } catch (e) {
             next(e)
         }
@@ -92,6 +93,39 @@ class UserController {
             const user = await UserService.changePassword(id, data)
 
             return res.json(user)
+        } catch (e) {
+            next(e)
+        }
+    }
+
+    async makeRef(req, res, next) {
+        try  {
+            const {user_id, ref} = req.body
+
+            const referral = await ReferralService.makeRef(user_id, ref);
+
+            return res.json(referral);
+        } catch (e) {
+            next(e)
+        }
+    }
+
+    async startEarn(req, res, next) {
+        try {
+            await UserService.start(req.params.userId);
+
+            return res.json(200);
+        } catch (e) {
+            next(e)
+        }
+    }
+
+    async transfer(req, res, next) {
+        try {
+            const {from, to, amount} = req.body;
+            const result = await UserService.transfer(from, to, amount);
+
+            return res.json(result);
         } catch (e) {
             next(e)
         }

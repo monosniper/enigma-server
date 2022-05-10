@@ -12,7 +12,8 @@ class CardController {
 
     async makeCard(req, res, next) {
         try {
-            const response = await CardService.makeCard(req.body);
+            const {user_id, data} = req.body;
+            const response = await CardService.makeCard(user_id, data);
 
             return res.json([response]);
         } catch (e) {

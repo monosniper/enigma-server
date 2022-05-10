@@ -1,4 +1,5 @@
 const UserModel = require('../models/user-model');
+const ReferralModel = require('../models/referral-model');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 const MailService = require('./mail-service');
@@ -6,9 +7,11 @@ const TokenService = require('./token-service');
 const UserDto = require('../dtos/user-dto');
 const ApiError = require('../exceptions/api-error');
 const randomstring = require('randomstring');
+const mongoose = require("mongoose");
+const schedule = require("node-schedule");
 
 class UserService {
-    async register({ email, name, password, bio }) {
+    async register({email, name, password, bio}) {
         if (await UserModel.findOne({email})) {
             throw ApiError.BadRequest('User with this email address already exists.');
         }
@@ -112,7 +115,7 @@ class UserService {
             throw ApiError.UnauthorizedError();
         }
 
-        const user = await UserModel.findById(userData.id);
+        const user = await UserModel.findById(userData.id).populate('refs');
         const userDto = new UserDto(user);
         const tokens = await TokenService.generateTokens({...userDto});
 
@@ -148,6 +151,66 @@ class UserService {
         }
 
         return new UserDto(user);
+    }
+
+    async farmAllUsers() {
+        await UserModel.find().exec((err, users) => {
+            users.map(user => {
+                try {
+                    user.balance = (user.token_rate / 1000 + user.balance / 1000) * 1000
+                    user.save({validateModifiedOnly: true})
+                } catch (e) {
+                    console.log(e)
+                }
+
+                return user;
+            })
+        });
+    }
+
+    async start(user_id) {
+        const date = new Date(Date.now() + (3600 * 1000 * 24));
+        await UserModel.findByIdAndUpdate(user_id, {isActive: true, activeUntil: date});
+        await ReferralModel.findOneAndUpdate({user: user_id}, {isActive: true})
+
+        // Mine every hour
+        await schedule.scheduleJob({ start: Date.now(), end: date, rule: '0 * * * *' }, function(){
+            UserModel.findById(user_id).exec((err, user) => {
+                user.balance = (user.token_rate / 1000 + user.balance / 1000) * 1000
+                user.save({validateModifiedOnly: true})
+            });
+        });
+
+        // Deactivate mining after 1 day
+        await schedule.scheduleJob(date, function() {
+            UserModel.findByIdAndUpdate(user_id, {isActive: false});
+            ReferralModel.findOneAndUpdate({user: user_id}, {isActive: false})
+        });
+    }
+
+    async transfer(from, to, amount) {
+        if(!to) throw ApiError.BadRequest('To field is required!');
+        if(!amount) throw ApiError.BadRequest('Amount field is required!');
+
+        const formatted_amount = parseFloat(amount).toFixed(2);
+
+        const from_user = await UserModel.findOne({number: from});
+        const to_user = await UserModel.findOne({number: to});
+
+        if(!from_user) throw ApiError.BadRequest('Incorrect "from" number');
+        if(!to_user) throw ApiError.BadRequest('Incorrect "to" number');
+
+        if(from_user.balance / 1000 < formatted_amount) {
+            throw ApiError.BadRequest('Not enough money');
+        }
+
+        from_user.balance = (from_user.balance / 1000 - formatted_amount) * 1000
+        to_user.balance = (to_user.balance / 1000 + formatted_amount) * 1000
+
+        from_user.save({validateModifiedOnly: true})
+        to_user.save({validateModifiedOnly: true})
+
+        return 200
     }
 }
 

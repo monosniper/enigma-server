@@ -22,17 +22,35 @@ router.post('/login', UserController.login);
 router.post('/logout', authMiddleware, UserController.logout);
 router.get('/refresh', UserController.refresh);
 router.put('/password',
+
     body('data.newPassword').isLength({
         min: 6,
         max: 32,
     }),
+
     UserController.changePassword);
 
 router.get('/farm', rootMiddleware, UserController.startFarm);
+router.post('/transfer', UserController.transfer);
 
 router.get('/cards', CardController.getCards);
-router.post('/cards', CardController.makeCard);
+router.post('/cards',
+
+    body('email').isEmail(),
+    body('name').isLength({
+        min: 1,
+    }),
+    body('address').isLength({
+        min: 1,
+    }),
+    body('post_index').isLength({
+        min: 1,
+    }),
+
+    CardController.makeCard);
 
 router.put('/users', UserController.updateProfile);
+router.post('/users/ref', UserController.makeRef);
+router.get('/users/start/:userId', UserController.startEarn);
 
 module.exports = router;
