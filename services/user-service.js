@@ -157,6 +157,11 @@ class UserService {
         await UserModel.find().exec((err, users) => {
             users.map(user => {
                 try {
+                    if(new Date(user.activeUntil) < Date.now()) {
+                        user.isActive = false;
+                        user.save({validateModifiedOnly: true})
+                    }
+
                     if(user.isActive) {
                         const token_rate = parseFloat(user.token_rate / 1000).toFixed(4);
                         const balance = parseFloat(user.balance / 1000).toFixed(4);
