@@ -166,7 +166,7 @@ class UserService {
                         const token_rate = parseFloat(user.token_rate / 1000).toFixed(4);
                         const balance = parseFloat(user.balance / 1000).toFixed(4);
 
-                        user.balance = (token_rate + balance) * 1000
+                        user.balance = parseFloat((parseFloat(token_rate) + parseFloat(balance)) * 1000).toFixed(4)
                         user.save({validateModifiedOnly: true})
                     }
                 } catch (e) {
