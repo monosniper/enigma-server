@@ -157,8 +157,13 @@ class UserService {
         await UserModel.find().exec((err, users) => {
             users.map(user => {
                 try {
-                    user.balance = (user.token_rate / 1000 + user.balance / 1000) * 1000
-                    user.save({validateModifiedOnly: true})
+                    if(user.isActive) {
+                        const token_rate = parseFloat(user.token_rate / 1000).toFixed(4);
+                        const balance = parseFloat(user.balance / 1000).toFixed(4);
+
+                        user.balance = (token_rate + balance) * 1000
+                        user.save({validateModifiedOnly: true})
+                    }
                 } catch (e) {
                     console.log(e)
                 }
@@ -174,18 +179,23 @@ class UserService {
         await ReferralModel.findOneAndUpdate({user: user_id}, {isActive: true})
 
         // Mine every hour
-        await schedule.scheduleJob({ start: Date.now(), end: date, rule: '0 * * * *' }, function(){
-            UserModel.findById(user_id).exec((err, user) => {
-                user.balance = (user.token_rate / 1000 + user.balance / 1000) * 1000
-                user.save({validateModifiedOnly: true})
-            });
-        });
+        // await schedule.scheduleJob({ start: Date.now(), end: date, rule: '0 * * * *' }, function(){
+        //     UserModel.findById(user_id).exec((err, user) => {
+        //         user.balance = (user.token_rate / 1000 + user.balance / 1000) * 1000
+        //         user.save({validateModifiedOnly: true})
+        //     });
+        // });
+        //
+        // // Deactivate mining after 1 day
+        // await schedule.scheduleJob(date, function() {
+        //     UserModel.findByIdAndUpdate(user_id, {isActive: false});
+        //     ReferralModel.findOneAndUpdate({user: user_id}, {isActive: false})
+        // });
+    }
 
-        // Deactivate mining after 1 day
-        await schedule.scheduleJob(date, function() {
-            UserModel.findByIdAndUpdate(user_id, {isActive: false});
-            ReferralModel.findOneAndUpdate({user: user_id}, {isActive: false})
-        });
+    async end(user_id) {
+        await UserModel.findByIdAndUpdate(user_id, {isActive: false, activeUntil: null});
+        await ReferralModel.findOneAndUpdate({user: user_id}, {isActive: false})
     }
 
     async transfer(from, to, amount) {
@@ -200,12 +210,15 @@ class UserService {
         if(!from_user) throw ApiError.BadRequest('Incorrect "from" number');
         if(!to_user) throw ApiError.BadRequest('Incorrect "to" number');
 
-        if(from_user.balance / 1000 < formatted_amount) {
+        const from_user_balance = parseFloat(from_user.balance / 1000).toFixed(4);
+        const to_user_balance = parseFloat(to_user.balance / 1000).toFixed(4);
+
+        if(from_user_balance < formatted_amount) {
             throw ApiError.BadRequest('Not enough money');
         }
 
-        from_user.balance = (from_user.balance / 1000 - formatted_amount) * 1000
-        to_user.balance = (to_user.balance / 1000 + formatted_amount) * 1000
+        from_user.balance = (from_user_balance - formatted_amount) * 1000
+        to_user.balance = (to_user_balance + formatted_amount) * 1000
 
         from_user.save({validateModifiedOnly: true})
         to_user.save({validateModifiedOnly: true})

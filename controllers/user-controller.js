@@ -4,6 +4,16 @@ const ApiError = require("../exceptions/api-error");
 const {validationResult} = require('express-validator');
 
 class UserController {
+    async getAllUsers(req, res, next) {
+        try {
+            const users = await UserService.getAllUsers();
+
+            return res.json(users);
+        } catch (e) {
+            next(e)
+        }
+    }
+
     async register(req, res, next) {
         try {
             const errors = validationResult(req);
@@ -113,6 +123,16 @@ class UserController {
     async startEarn(req, res, next) {
         try {
             await UserService.start(req.params.userId);
+
+            return res.json(200);
+        } catch (e) {
+            next(e)
+        }
+    }
+
+    async endEarn(req, res, next) {
+        try {
+            await UserService.end(req.params.userId);
 
             return res.json(200);
         } catch (e) {

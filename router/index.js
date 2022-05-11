@@ -49,8 +49,11 @@ router.post('/cards',
 
     CardController.makeCard);
 
+router.get('/users', rootMiddleware, UserController.getAllUsers);
 router.put('/users', UserController.updateProfile);
 router.post('/users/ref', UserController.makeRef);
-router.get('/users/start/:userId', UserController.startEarn);
+
+router.get('/farm/start/:userId', UserController.startEarn);
+router.get('/farm/end/:userId', UserController.endEarn);
 
 module.exports = router;

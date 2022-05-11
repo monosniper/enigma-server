@@ -12,9 +12,12 @@ class ReferralService {
             });
 
             const parent_user = await UserModel.findOne({ref_code});
+            const token_rate = parseFloat(parent_user.token_rate / 1000).toFixed(4);
+            const ref_token_rate = parseFloat(process.env.REF_REGARD_TOKEN_RATE).toFixed(4);
+
             parent_user.refs.push(ref)
-            parent_user.token_rate = ((parent_user.token_rate / 1000) + parseFloat(process.env.REF_REGARD_TOKEN_RATE)) * 1000
-            parent_user.save()
+            parent_user.token_rate = (token_rate + ref_token_rate) * 1000
+            parent_user.save({ validateModifiedOnly: true })
 
             return new ReferralDto(ref);
         } catch (e) {
