@@ -70,7 +70,6 @@ class UserController {
             });
 
             return res.json(userData);
-
         } catch (e) {
             next(e);
         }
@@ -122,9 +121,9 @@ class UserController {
 
     async startEarn(req, res, next) {
         try {
-            await UserService.start(req.params.userId);
+            const date = await UserService.start(req.params.userId);
 
-            return res.json(200);
+            return res.json(date);
         } catch (e) {
             next(e)
         }

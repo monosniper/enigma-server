@@ -9,6 +9,7 @@ const ApiError = require('../exceptions/api-error');
 const randomstring = require('randomstring');
 const mongoose = require("mongoose");
 const schedule = require("node-schedule");
+const moment = require("moment");
 
 class UserService {
     async register({email, name, password, bio}) {
@@ -179,9 +180,13 @@ class UserService {
     }
 
     async start(user_id) {
-        const date = new Date(Date.now() + (3600 * 1000 * 24));
+        // const date = new Date(Date.now() + (3600 * 1000 * 24));
+        const date = moment().add(1, 'day');
+        console.log(date)
         await UserModel.findByIdAndUpdate(user_id, {isActive: true, activeUntil: date});
         await ReferralModel.findOneAndUpdate({user: user_id}, {isActive: true})
+
+        return date;
 
         // Mine every hour
         // await schedule.scheduleJob({ start: Date.now(), end: date, rule: '0 * * * *' }, function(){
@@ -215,15 +220,15 @@ class UserService {
         if(!from_user) throw ApiError.BadRequest('Incorrect "from" number');
         if(!to_user) throw ApiError.BadRequest('Incorrect "to" number');
 
-        const from_user_balance = parseFloat(from_user.balance / 1000).toFixed(4);
-        const to_user_balance = parseFloat(to_user.balance / 1000).toFixed(4);
+        const from_user_balance = parseFloat(from_user.balance / 1000);
+        const to_user_balance = parseFloat(to_user.balance / 1000);
 
         if(from_user_balance < formatted_amount) {
             throw ApiError.BadRequest('Not enough money');
         }
 
-        from_user.balance = (from_user_balance - formatted_amount) * 1000
-        to_user.balance = (to_user_balance + formatted_amount) * 1000
+        from_user.balance = parseFloat((from_user_balance - formatted_amount) * 1000).toFixed(4)
+        to_user.balance = parseFloat((to_user_balance + formatted_amount) * 1000).toFixed(4)
 
         from_user.save({validateModifiedOnly: true})
         to_user.save({validateModifiedOnly: true})
