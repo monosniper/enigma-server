@@ -213,7 +213,7 @@ class UserService {
         if(!amount) throw ApiError.BadRequest('Amount field is required!');
 
         const formatted_amount = parseFloat(amount).toFixed(2);
-
+        console.log('formatted_amount',formatted_amount)
         const from_user = await UserModel.findOne({number: from});
         const to_user = await UserModel.findOne({number: to});
 
@@ -222,6 +222,8 @@ class UserService {
 
         const from_user_balance = parseFloat(from_user.balance / 1000);
         const to_user_balance = parseFloat(to_user.balance / 1000);
+        console.log('from_user_balance',from_user_balance)
+        console.log('to_user_balance',to_user_balance)
 
         if(from_user_balance < formatted_amount) {
             throw ApiError.BadRequest('Not enough money');
@@ -229,7 +231,8 @@ class UserService {
 
         from_user.balance = parseFloat((from_user_balance - formatted_amount) * 1000).toFixed(4)
         to_user.balance = parseFloat((to_user_balance + formatted_amount) * 1000).toFixed(4)
-
+        console.log('(from_user_balance - formatted_amount) * 1000',(from_user_balance - formatted_amount) * 1000)
+        console.log('(to_user_balance + formatted_amount) * 1000',(to_user_balance + formatted_amount) * 1000)
         from_user.save({validateModifiedOnly: true})
         to_user.save({validateModifiedOnly: true})
 
