@@ -8,6 +8,7 @@ const UserSchema = new Schema({
     bio: {type: String},
     number: {type: String, unique: true},
     isActive: {type: Boolean, default: false},
+    // lang: {type: String, default: 'en'},
     ref_code: {type: String, unique: true},
     activeUntil: {type: Date},
     balance: {type: Number, default: 0},
